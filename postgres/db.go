@@ -5,7 +5,6 @@ import (
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	trmpgx "github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2"
@@ -88,7 +87,7 @@ func (db *DB) GetPool() *pgxpool.Pool {
 	return db.pool
 }
 
-func (db *DB) Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error) {
+func (db *DB) query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error) {
 	ctx, span := db.startSpan(ctx, "DB.Query",
 		attribute.String("sql", sql),
 		attribute.Int("args_count", len(args)))
@@ -103,7 +102,7 @@ func (db *DB) Query(ctx context.Context, sql string, args ...interface{}) (pgx.R
 	return rows, err
 }
 
-func (db *DB) QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row {
+func (db *DB) queryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row {
 	ctx, span := db.startSpan(ctx, "DB.QueryRow",
 		attribute.String("sql", sql),
 		attribute.Int("args_count", len(args)))
@@ -113,7 +112,7 @@ func (db *DB) QueryRow(ctx context.Context, sql string, args ...interface{}) pgx
 	return conn.QueryRow(ctx, sql, args...)
 }
 
-func (db *DB) Exec(ctx context.Context, sql string, args ...interface{}) (pgconn.CommandTag, error) {
+func (db *DB) Exec(ctx context.Context, sql string, args ...interface{}) error {
 	ctx, span := db.startSpan(ctx, "DB.Exec",
 		attribute.String("sql", sql),
 		attribute.Int("args_count", len(args)))
@@ -127,7 +126,7 @@ func (db *DB) Exec(ctx context.Context, sql string, args ...interface{}) (pgconn
 	} else {
 		span.SetAttributes(attribute.Int64("affected_rows", result.RowsAffected()))
 	}
-	return result, err
+	return err
 }
 
 func (db *DB) QueryStruct(ctx context.Context, dst interface{}, sql string, args ...interface{}) error {
@@ -159,7 +158,7 @@ func (db *DB) QueryStructs(ctx context.Context, dst interface{}, sql string, arg
 		attribute.Int("args_count", len(args)))
 	defer span.End()
 
-	rows, err := db.Query(ctx, sql, args...)
+	rows, err := db.query(ctx, sql, args...)
 	if err != nil {
 		return err
 	}
