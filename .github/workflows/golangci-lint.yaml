@@ -1,0 +1,26 @@
+# .github/workflows/golangci-lint.yml
+name: golangci-lint
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'postgres/**'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'postgres/**'
+
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.4'
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: v2.1.6

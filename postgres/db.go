@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
@@ -27,7 +28,7 @@ type (
 
 type DB struct {
 	pool    *pgxpool.Pool
-	getter  *trmpgx.CtxGetter
+	getter  trManager
 	tracer  trace.Tracer
 	withTel bool
 }
@@ -87,7 +88,7 @@ func (db *DB) GetPool() *pgxpool.Pool {
 	return db.pool
 }
 
-func (db *DB) query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error) {
+func (db *DB) query(ctx context.Context, mapper func(rows pgx.Rows) error, sql string, args ...interface{}) error {
 	ctx, span := db.startSpan(ctx, "DB.Query",
 		attribute.String("sql", sql),
 		attribute.Int("args_count", len(args)))
@@ -96,20 +97,14 @@ func (db *DB) query(ctx context.Context, sql string, args ...interface{}) (pgx.R
 	conn := db.getter.DefaultTrOrDB(ctx, db.pool)
 	rows, err := conn.Query(ctx, sql, args...)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
+		if !errors.Is(err, pgx.ErrNoRows) {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		return err
 	}
-	return rows, err
-}
-
-func (db *DB) queryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row {
-	ctx, span := db.startSpan(ctx, "DB.QueryRow",
-		attribute.String("sql", sql),
-		attribute.Int("args_count", len(args)))
-	defer span.End()
-
-	conn := db.getter.DefaultTrOrDB(ctx, db.pool)
-	return conn.QueryRow(ctx, sql, args...)
+	defer rows.Close()
+	return mapper(rows)
 }
 
 func (db *DB) Exec(ctx context.Context, sql string, args ...interface{}) error {
@@ -158,16 +153,14 @@ func (db *DB) QueryStructs(ctx context.Context, dst interface{}, sql string, arg
 		attribute.Int("args_count", len(args)))
 	defer span.End()
 
-	rows, err := db.query(ctx, sql, args...)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	err = pgxscan.ScanAll(dst, rows)
+	err := db.query(ctx, func(rows pgx.Rows) error {
+		return pgxscan.ScanAll(dst, rows)
+	}, sql, args...)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
+		return err
 	}
+
 	return err
 }

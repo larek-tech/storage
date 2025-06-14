@@ -1,6 +1,6 @@
 module github.com/larek-tech/storage/postgres
 
-go 1.24.2
+go 1.24.4
 
 require (
 	github.com/avito-tech/go-transaction-manager/drivers/pgxv5/v2 v2.0.0

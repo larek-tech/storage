@@ -1,0 +1,68 @@
+version: "2"
+run:
+  go: 1.24.2
+linters:
+  enable:
+    - bodyclose
+    - dupl
+    - gocyclo
+    - gosec
+    - misspell
+    - nestif
+    - nolintlint
+    - rowserrcheck
+    - sqlclosecheck
+    - unconvert
+    - unparam
+    - whitespace
+  settings:
+    dupl:
+      threshold: 100
+    goconst:
+      min-len: 2
+      min-occurrences: 2
+    gocyclo:
+      min-complexity: 15
+    gosec:
+      excludes:
+        - G404
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - dupl
+          - errcheck
+          - gocyclo
+          - gosec
+        path: _test\.go
+      - linters:
+          - forbidigo
+        path-except: _test\.go
+      - linters:
+          - gosec
+        path: internal/hmac/
+        text: weak cryptographic primitive
+      - linters:
+          - staticcheck
+        text: 'SA9003:'
+      - linters:
+          - lll
+        source: '^//go:generate '
+      - path: (.+)\.go$
+        text: .*\.my\.go$
+      - path: (.+)\.go$
+        text: lib/bad.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
