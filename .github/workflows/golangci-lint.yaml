@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: [postgres, redis, kafka]
+        module: [postgres, redis, kafka, kafka/integration]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

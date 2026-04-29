@@ -72,7 +72,7 @@ func NewCfgFromDSN(dsn string) (Cfg, error) {
 	if hosts == "" {
 		return Cfg{}, fmt.Errorf("no brokers in dsn")
 	}
-	for _, raw := range strings.Split(hosts, ",") {
+	for raw := range strings.SplitSeq(hosts, ",") {
 		broker, err := normalizeBroker(raw)
 		if err != nil {
 			return Cfg{}, err
