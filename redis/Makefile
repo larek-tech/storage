@@ -1,6 +1,6 @@
 .PHONY: lint lint-fix install-lint-deps
 
-GOLANG_CI_LINT_VERSION = v2.1.6
+GOLANG_CI_LINT_VERSION = v2.11.4
 
 lint: install-lint-deps
 	golangci-lint run ./...

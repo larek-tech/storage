@@ -29,4 +29,4 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           working-directory: ${{ matrix.module }}
-          version: v2.1
+          version: v2.11
