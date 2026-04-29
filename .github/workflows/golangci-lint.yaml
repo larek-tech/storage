@@ -7,11 +7,13 @@ on:
     paths:
       - 'postgres/**'
       - 'redis/**'
+      - 'kafka/**'
   pull_request:
     branches: [ main, master ]
     paths:
       - 'postgres/**'
       - 'redis/**'
+      - 'kafka/**'
 
 jobs:
   golangci:
@@ -19,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: [postgres, redis]
+        module: [postgres, redis, kafka]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

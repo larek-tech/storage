@@ -6,6 +6,7 @@ on:
     paths:
       - 'postgres/**'
       - 'redis/**'
+      - 'kafka/**'
   workflow_dispatch:
     inputs:
       module:
@@ -17,6 +18,7 @@ on:
           - all
           - postgres
           - redis
+          - kafka
       bump:
         description: "Какую часть SemVer поднять"
         required: true
@@ -41,7 +43,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [postgres, redis]
+        module: [postgres, redis, kafka]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
