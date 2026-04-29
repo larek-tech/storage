@@ -6,15 +6,20 @@ on:
     branches: [ main, master ]
     paths:
       - 'postgres/**'
+      - 'redis/**'
   pull_request:
     branches: [ main, master ]
     paths:
       - 'postgres/**'
+      - 'redis/**'
 
 jobs:
   golangci:
     name: lint
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: [postgres, redis]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -23,5 +28,5 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
-          working-directory: postgres
-          version: v2.1
+          working-directory: ${{ matrix.module }}
+          version: v2.11

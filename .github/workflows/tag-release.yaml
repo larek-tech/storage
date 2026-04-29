@@ -1,0 +1,116 @@
+name: tag-release
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'postgres/**'
+      - 'redis/**'
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "Module to tag (postgres, redis или all)"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - postgres
+          - redis
+      bump:
+        description: "Какую часть SemVer поднять"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tag-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: tag ${{ matrix.module }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [postgres, redis]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Skip module if not selected (manual run)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.module != 'all' && github.event.inputs.module != matrix.module
+        run: echo "SKIP=true" >> "$GITHUB_ENV"
+
+      - name: Detect module changes (push)
+        if: env.SKIP != 'true' && github.event_name == 'push'
+        id: changed
+        run: |
+          set -euo pipefail
+          before='${{ github.event.before }}'
+          after='${{ github.event.after }}'
+          if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+            range="$after"
+            files=$(git show --name-only --pretty=format: "$after")
+          else
+            range="$before..$after"
+            files=$(git diff --name-only "$before" "$after")
+          fi
+          echo "Changed files in $range:"
+          echo "$files"
+          if echo "$files" | grep -q "^${{ matrix.module }}/"; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compute next tag
+        if: env.SKIP != 'true' && (github.event_name == 'workflow_dispatch' || steps.changed.outputs.changed == 'true')
+        id: version
+        run: |
+          set -euo pipefail
+          module='${{ matrix.module }}'
+          bump='${{ github.event.inputs.bump }}'
+          if [ -z "$bump" ]; then bump="patch"; fi
+
+          latest=$(git tag --list "${module}/v*" --sort=-v:refname | head -n 1 || true)
+          if [ -z "$latest" ]; then
+            major=0; minor=0; patch=0
+          else
+            ver=${latest#${module}/v}
+            IFS='.' read -r major minor patch <<<"$ver"
+          fi
+
+          case "$bump" in
+            major) major=$((major+1)); minor=0; patch=0 ;;
+            minor) minor=$((minor+1)); patch=0 ;;
+            patch) patch=$((patch+1)) ;;
+            *) echo "unknown bump: $bump"; exit 1 ;;
+          esac
+
+          next="${module}/v${major}.${minor}.${patch}"
+          echo "previous=${latest:-<none>}"
+          echo "next=$next"
+          echo "tag=$next" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        if: env.SKIP != 'true' && steps.version.outputs.tag != ''
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "$TAG"
+          git push origin "$TAG"
