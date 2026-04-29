@@ -3,16 +3,28 @@ name: kafka-integration
 on:
   push:
     branches: [ main, master ]
-    paths:
-      - 'kafka/**'
   pull_request:
     branches: [ main, master ]
-    paths:
-      - 'kafka/**'
 
 jobs:
+  changes:
+    name: detect kafka changes
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.filter.outputs.kafka }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            kafka:
+              - 'kafka/**'
+
   integration:
     name: testcontainers
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
