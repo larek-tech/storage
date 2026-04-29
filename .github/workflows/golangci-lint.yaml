@@ -4,22 +4,40 @@ name: golangci-lint
 on:
   push:
     branches: [ main, master ]
-    paths:
-      - 'postgres/**'
-      - 'redis/**'
   pull_request:
     branches: [ main, master ]
-    paths:
-      - 'postgres/**'
-      - 'redis/**'
 
 jobs:
-  golangci:
-    name: lint
+  changes:
+    name: detect changed modules
+    runs-on: ubuntu-latest
+    outputs:
+      modules: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            postgres:
+              - 'postgres/**'
+            redis:
+              - 'redis/**'
+            kafka:
+              - 'kafka/**'
+              - '!kafka/integration/**'
+            kafka/integration:
+              - 'kafka/integration/**'
+
+  lint:
+    name: lint (${{ matrix.module }})
+    needs: changes
+    if: needs.changes.outputs.modules != '[]'
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        module: [postgres, redis]
+        module: ${{ fromJSON(needs.changes.outputs.modules) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
