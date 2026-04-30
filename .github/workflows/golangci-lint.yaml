@@ -28,6 +28,8 @@ jobs:
               - '!kafka/integration/**'
             kafka/integration:
               - 'kafka/integration/**'
+            s3:
+              - 's3/**'
 
   lint:
     name: lint (${{ matrix.module }})

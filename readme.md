@@ -22,6 +22,17 @@
 
 Подробную информацию смотрите в [README для PostgreSQL](postgres/readme.md).
 
+### S3 (Object Storage)
+
+Модуль [s3](s3) предоставляет минимальную обёртку над S3 / S3-compatible хранилищами:
+
+- Сохранение объектов
+- Получение объектов
+- Получение списка по префиксу
+- Генерация ссылки для прямой загрузки
+
+Подробную информацию смотрите в [README для S3](s3/readme.md).
+
 ## Планируемые расширения
 
 ### MongoDB (Скоро)
@@ -54,6 +65,9 @@
 ```bash
 # Реализация для PostgreSQL
 go get github.com/larek-tech/storage/postgres
+
+# Реализация для S3
+go get github.com/larek-tech/storage/s3
 
 # Будущие реализации
 # go get github.com/larek-tech/storage/mongodb
